@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"email" | "wallet">("email");
+  const [connectingWallet, setConnectingWallet] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,11 +27,13 @@ export default function LoginPage() {
     router.push("/viewer");
   };
 
-  const handleWalletConnect = async () => {
+  const handleWalletConnect = async (walletType: "phantom" | "glow") => {
+    setConnectingWallet(walletType);
     setIsLoading(true);
     // Simulate wallet connection
     await new Promise((resolve) => setTimeout(resolve, 1500));
     setIsLoading(false);
+    setConnectingWallet(null);
     router.push("/viewer");
   };
 
@@ -149,27 +152,62 @@ export default function LoginPage() {
             </form>
           ) : (
             <div className="space-y-4">
+              <p className="text-sm text-muted-foreground text-center mb-2">
+                Choose your Solana wallet
+              </p>
+              
+              {/* Phantom Wallet */}
               <Button
-                onClick={handleWalletConnect}
-                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-14"
+                onClick={() => handleWalletConnect("phantom")}
+                className="w-full bg-[#AB9FF2] hover:bg-[#AB9FF2]/90 text-white h-14"
                 disabled={isLoading}
               >
-                {isLoading ? (
+                {connectingWallet === "phantom" ? (
                   <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-accent-foreground/30 border-t-accent-foreground rounded-full animate-spin" />
-                    Connecting...
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Connecting to Phantom...
                   </span>
                 ) : (
                   <span className="flex items-center gap-3">
-                    <Wallet className="w-5 h-5" />
-                    Connect Solana Wallet
+                    <svg className="w-5 h-5" viewBox="0 0 128 128" fill="none">
+                      <circle cx="64" cy="64" r="64" fill="currentColor" fillOpacity="0.2"/>
+                      <path d="M110.584 64.9142H99.142C99.142 41.7651 80.173 23 56.7724 23C33.6612 23 14.8716 41.3057 14.4118 64.0583C13.936 87.5183 35.8761 107.5 59.9043 107.5H63.3279C84.3315 107.5 110.584 89.2057 110.584 64.9142Z" fill="white"/>
+                      <path d="M77.8896 66.7276C77.8896 70.1758 75.0863 72.9791 71.6381 72.9791C68.1899 72.9791 65.3866 70.1758 65.3866 66.7276C65.3866 63.2794 68.1899 60.4761 71.6381 60.4761C75.0863 60.4761 77.8896 63.2794 77.8896 66.7276Z" fill="#AB9FF2"/>
+                      <path d="M51.1227 66.7276C51.1227 70.1758 48.3194 72.9791 44.8712 72.9791C41.423 72.9791 38.6197 70.1758 38.6197 66.7276C38.6197 63.2794 41.423 60.4761 44.8712 60.4761C48.3194 60.4761 51.1227 63.2794 51.1227 66.7276Z" fill="#AB9FF2"/>
+                    </svg>
+                    Connect Phantom
                   </span>
                 )}
               </Button>
 
-              <p className="text-xs text-center text-muted-foreground">
-                Supports Phantom, Solflare, and other Solana wallets
-              </p>
+              {/* Glow Wallet */}
+              <Button
+                onClick={() => handleWalletConnect("glow")}
+                className="w-full bg-gradient-to-r from-[#7C3AED] to-[#EC4899] hover:opacity-90 text-white h-14"
+                disabled={isLoading}
+              >
+                {connectingWallet === "glow" ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Connecting to Glow...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-3">
+                    <svg className="w-5 h-5" viewBox="0 0 32 32" fill="none">
+                      <rect width="32" height="32" rx="8" fill="url(#glow-gradient)"/>
+                      <path d="M16 8C11.582 8 8 11.582 8 16C8 20.418 11.582 24 16 24C20.418 24 24 20.418 24 16C24 11.582 20.418 8 16 8ZM16 22C12.686 22 10 19.314 10 16C10 12.686 12.686 10 16 10C19.314 10 22 12.686 22 16C22 19.314 19.314 22 16 22Z" fill="white"/>
+                      <circle cx="16" cy="16" r="4" fill="white"/>
+                      <defs>
+                        <linearGradient id="glow-gradient" x1="0" y1="0" x2="32" y2="32">
+                          <stop stopColor="#7C3AED"/>
+                          <stop offset="1" stopColor="#EC4899"/>
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    Connect Glow
+                  </span>
+                )}
+              </Button>
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -184,6 +222,7 @@ export default function LoginPage() {
                 variant="ghost"
                 onClick={() => router.push("/viewer")}
                 className="w-full text-muted-foreground hover:text-foreground"
+                disabled={isLoading}
               >
                 Continue without wallet (Demo Mode)
               </Button>
