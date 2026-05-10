@@ -237,6 +237,23 @@ function RegisterForm() {
               <p className="text-xs text-center text-muted-foreground">
                 Supports Phantom, Solflare, and other Solana wallets
               </p>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-card px-2 text-muted-foreground">or</span>
+                </div>
+              </div>
+
+              <Button
+                variant="ghost"
+                onClick={() => router.push(role === "contributor" ? "/contributor" : "/viewer")}
+                className="w-full text-muted-foreground hover:text-foreground"
+              >
+                Continue without wallet (Demo Mode)
+              </Button>
             </div>
           )}
 
