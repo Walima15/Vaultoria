@@ -1,22 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { VaultoriaLogo } from "@/components/vaultoria-logo";
 import { AnimatedBackground } from "@/components/animated-background";
-import { Mail, Lock, Eye, EyeOff, Wallet, ArrowRight } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { select, wallets, publicKey, connecting, connected, disconnect } = useWallet();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"email" | "wallet">("email");
   const [connectingWallet, setConnectingWallet] = useState<string | null>(null);
+  const [walletError, setWalletError] = useState<string | null>(null);
+
+  // Find specific wallets
+  const phantomWallet = wallets.find(w => w.adapter.name === "Phantom");
+  const glowWallet = wallets.find(w => w.adapter.name === "Glow");
+
+  // Redirect when connected
+  useEffect(() => {
+    if (connected && publicKey) {
+      router.push("/viewer");
+    }
+  }, [connected, publicKey, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,13 +43,33 @@ export default function LoginPage() {
 
   const handleWalletConnect = async (walletType: "phantom" | "glow") => {
     setConnectingWallet(walletType);
-    setIsLoading(true);
-    // Simulate wallet connection
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    setConnectingWallet(null);
-    router.push("/viewer");
+    setWalletError(null);
+    
+    try {
+      const wallet = walletType === "phantom" ? phantomWallet : glowWallet;
+      
+      if (!wallet) {
+        const walletName = walletType === "phantom" ? "Phantom" : "Glow";
+        setWalletError(`${walletName} wallet not found. Please install the ${walletName} browser extension.`);
+        setConnectingWallet(null);
+        return;
+      }
+
+      // Select the wallet - this will trigger the wallet's connect popup
+      select(wallet.adapter.name);
+    } catch (error) {
+      console.error("Wallet connection error:", error);
+      setWalletError("Failed to connect wallet. Please try again.");
+      setConnectingWallet(null);
+    }
   };
+
+  // Reset connecting state when connection completes or fails
+  useEffect(() => {
+    if (!connecting && connectingWallet) {
+      setConnectingWallet(null);
+    }
+  }, [connecting, connectingWallet]);
 
   return (
     <main className="min-h-screen bg-background relative flex items-center justify-center p-4">
@@ -58,6 +92,27 @@ export default function LoginPage() {
               Sign in to access the archive
             </p>
           </div>
+
+          {/* Connected Wallet Display */}
+          {connected && publicKey && (
+            <div className="mb-6 p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+              <div className="flex items-center gap-2 text-green-400 mb-2">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="text-sm font-medium">Wallet Connected</span>
+              </div>
+              <p className="text-xs text-muted-foreground font-mono truncate">
+                {publicKey.toBase58()}
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => disconnect()}
+                className="mt-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                Disconnect
+              </Button>
+            </div>
+          )}
 
           {/* Login Method Toggle */}
           <div className="flex gap-2 mb-6 p-1 rounded-lg bg-secondary">
@@ -155,14 +210,21 @@ export default function LoginPage() {
               <p className="text-sm text-muted-foreground text-center mb-2">
                 Choose your Solana wallet
               </p>
+
+              {/* Error Message */}
+              {walletError && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                  {walletError}
+                </div>
+              )}
               
               {/* Phantom Wallet */}
               <Button
                 onClick={() => handleWalletConnect("phantom")}
                 className="w-full bg-[#AB9FF2] hover:bg-[#AB9FF2]/90 text-white h-14"
-                disabled={isLoading}
+                disabled={connecting || connected}
               >
-                {connectingWallet === "phantom" ? (
+                {connectingWallet === "phantom" || (connecting && connectingWallet === "phantom") ? (
                   <span className="flex items-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Connecting to Phantom...
@@ -176,6 +238,7 @@ export default function LoginPage() {
                       <path d="M51.1227 66.7276C51.1227 70.1758 48.3194 72.9791 44.8712 72.9791C41.423 72.9791 38.6197 70.1758 38.6197 66.7276C38.6197 63.2794 41.423 60.4761 44.8712 60.4761C48.3194 60.4761 51.1227 63.2794 51.1227 66.7276Z" fill="#AB9FF2"/>
                     </svg>
                     Connect Phantom
+                    {!phantomWallet && <span className="text-xs opacity-70">(Not installed)</span>}
                   </span>
                 )}
               </Button>
@@ -184,9 +247,9 @@ export default function LoginPage() {
               <Button
                 onClick={() => handleWalletConnect("glow")}
                 className="w-full bg-gradient-to-r from-[#7C3AED] to-[#EC4899] hover:opacity-90 text-white h-14"
-                disabled={isLoading}
+                disabled={connecting || connected}
               >
-                {connectingWallet === "glow" ? (
+                {connectingWallet === "glow" || (connecting && connectingWallet === "glow") ? (
                   <span className="flex items-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Connecting to Glow...
@@ -205,6 +268,7 @@ export default function LoginPage() {
                       </defs>
                     </svg>
                     Connect Glow
+                    {!glowWallet && <span className="text-xs opacity-70">(Not installed)</span>}
                   </span>
                 )}
               </Button>
@@ -222,7 +286,7 @@ export default function LoginPage() {
                 variant="ghost"
                 onClick={() => router.push("/viewer")}
                 className="w-full text-muted-foreground hover:text-foreground"
-                disabled={isLoading}
+                disabled={connecting}
               >
                 Continue without wallet (Demo Mode)
               </Button>
