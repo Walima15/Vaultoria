@@ -2,75 +2,69 @@
 
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Archive as ArchiveType } from "@/lib/data";
 import {
   Archive,
   Eye,
   Download,
-  TrendingUp,
-  Users,
   FileCheck,
   Clock,
 } from "lucide-react";
 
-const stats = [
-  {
-    title: "Total Archives",
-    value: "156",
-    change: "+12 this month",
-    icon: Archive,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  {
-    title: "Total Views",
-    value: "45.2K",
-    change: "+23% from last month",
-    icon: Eye,
-    color: "text-accent",
-    bgColor: "bg-accent/10",
-  },
-  {
-    title: "Downloads",
-    value: "8,923",
-    change: "+15% from last month",
-    icon: Download,
-    color: "text-green-500",
-    bgColor: "bg-green-500/10",
-  },
-  {
-    title: "Verified",
-    value: "142",
-    change: "91% verification rate",
-    icon: FileCheck,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-];
+interface ContributorStatsProps {
+  archives: ArchiveType[];
+}
 
-const recentActivity = [
-  {
-    title: "Declaration of Independence uploaded",
-    time: "2 hours ago",
-    status: "verified",
-  },
-  {
-    title: "Berlin Wall photos pending review",
-    time: "5 hours ago",
-    status: "pending",
-  },
-  {
-    title: "Apollo 11 footage verified",
-    time: "1 day ago",
-    status: "verified",
-  },
-  {
-    title: "Research paper processing",
-    time: "2 days ago",
-    status: "processing",
-  },
-];
+export function ContributorStats({ archives }: ContributorStatsProps) {
+  const totalViews = archives.reduce((sum, a) => sum + a.views, 0);
+  const totalDownloads = archives.reduce((sum, a) => sum + a.downloads, 0);
+  const verifiedCount = archives.filter((a) => a.verified).length;
+  const verificationRate =
+    archives.length > 0
+      ? Math.round((verifiedCount / archives.length) * 100)
+      : 0;
 
-export function ContributorStats() {
+  const stats = [
+    {
+      title: "Total Archives",
+      value: archives.length.toLocaleString(),
+      change: `${archives.length} uploaded`,
+      icon: Archive,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      title: "Total Views",
+      value: totalViews.toLocaleString(),
+      change: "across all archives",
+      icon: Eye,
+      color: "text-accent",
+      bgColor: "bg-accent/10",
+    },
+    {
+      title: "Downloads",
+      value: totalDownloads.toLocaleString(),
+      change: "across all archives",
+      icon: Download,
+      color: "text-green-500",
+      bgColor: "bg-green-500/10",
+    },
+    {
+      title: "Verified",
+      value: verifiedCount.toLocaleString(),
+      change: `${verificationRate}% verification rate`,
+      icon: FileCheck,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+  ];
+
+  const recentActivity = archives.slice(0, 4).map((a) => ({
+    title: a.title,
+    time: a.uploadDate,
+    status: a.verified ? "verified" : "pending",
+  }));
+
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
@@ -118,32 +112,36 @@ export function ContributorStats() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentActivity.map((activity, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between py-3 border-b border-border last:border-0"
-                >
-                  <div>
-                    <p className="font-medium text-sm">{activity.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {activity.time}
-                    </p>
-                  </div>
-                  <span
-                    className={`px-2 py-1 text-xs rounded-full ${
-                      activity.status === "verified"
-                        ? "bg-green-500/10 text-green-500"
-                        : activity.status === "pending"
-                        ? "bg-yellow-500/10 text-yellow-500"
-                        : "bg-accent/10 text-accent"
-                    }`}
+            {recentActivity.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">
+                No activity yet. Upload your first archive to get started.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {recentActivity.map((activity, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between py-3 border-b border-border last:border-0"
                   >
-                    {activity.status}
-                  </span>
-                </div>
-              ))}
-            </div>
+                    <div>
+                      <p className="font-medium text-sm">{activity.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {activity.time}
+                      </p>
+                    </div>
+                    <span
+                      className={`px-2 py-1 text-xs rounded-full ${
+                        activity.status === "verified"
+                          ? "bg-green-500/10 text-green-500"
+                          : "bg-yellow-500/10 text-yellow-500"
+                      }`}
+                    >
+                      {activity.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>

@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,14 +34,46 @@ function RegisterForm() {
   const [registerMethod, setRegisterMethod] = useState<"email" | "wallet">(
     "email"
   );
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate registration
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    setError(null);
+    setInfo(null);
+
+    const supabase = createClient();
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: name, role },
+        emailRedirectTo:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/login`
+            : undefined,
+      },
+    });
+
     setIsLoading(false);
-    router.push(role === "contributor" ? "/contributor" : "/viewer");
+
+    if (signUpError) {
+      setError(signUpError.message);
+      return;
+    }
+
+    // When email confirmation is enabled, no session is returned yet.
+    if (data.session) {
+      router.push(role === "contributor" ? "/contributor" : "/viewer");
+    } else {
+      setInfo(
+        "Account created. Check your email to confirm your account, then sign in."
+      );
+    }
   };
 
   const handleWalletConnect = async () => {
@@ -138,6 +171,17 @@ function RegisterForm() {
             </button>
           </div>
 
+          {error && (
+            <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+          {info && (
+            <div className="mb-4 rounded-lg border border-primary/50 bg-primary/10 px-4 py-3 text-sm text-primary">
+              {info}
+            </div>
+          )}
+
           {registerMethod === "email" ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -149,6 +193,8 @@ function RegisterForm() {
                     type="text"
                     placeholder="John Doe"
                     className="pl-10 bg-secondary border-border"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     required
                   />
                 </div>
@@ -163,6 +209,8 @@ function RegisterForm() {
                     type="email"
                     placeholder="you@example.com"
                     className="pl-10 bg-secondary border-border"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
@@ -177,6 +225,8 @@ function RegisterForm() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a strong password"
                     className="pl-10 pr-10 bg-secondary border-border"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                   />
                   <button

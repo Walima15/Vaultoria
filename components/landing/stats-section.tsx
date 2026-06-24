@@ -1,9 +1,23 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { stats } from "@/lib/data";
+import { getPlatformStats, type PlatformStat } from "@/lib/data";
+
+const initialStats: PlatformStat[] = [
+  { label: "Archives Preserved", value: "0", suffix: "" },
+  { label: "Verified Documents", value: "0", suffix: "" },
+  { label: "Active Contributors", value: "0", suffix: "" },
+  { label: "Countries Covered", value: "0", suffix: "" },
+];
 
 export function StatsSection() {
+  const [stats, setStats] = useState<PlatformStat[]>(initialStats);
+
+  useEffect(() => {
+    getPlatformStats().then(setStats);
+  }, []);
+
   return (
     <section className="py-20 relative">
       <div className="container mx-auto px-4">

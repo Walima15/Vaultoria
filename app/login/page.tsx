@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,14 +17,45 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"email" | "wallet">("email");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate login
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    setError(null);
+
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
+    if (signInError) {
+      setIsLoading(false);
+      setError(signInError.message);
+      return;
+    }
+
+    // Route based on the user's role stored in their profile.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    let role: string | null = null;
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      role = profile?.role ?? null;
+    }
+
     setIsLoading(false);
-    router.push("/viewer");
+    if (role === "admin") router.push("/admin");
+    else if (role === "contributor") router.push("/contributor");
+    else router.push("/viewer");
   };
 
   const handleWalletConnect = async () => {
@@ -80,6 +112,12 @@ export default function LoginPage() {
             </button>
           </div>
 
+          {error && (
+            <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
           {loginMethod === "email" ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -91,6 +129,8 @@ export default function LoginPage() {
                     type="email"
                     placeholder="you@example.com"
                     className="pl-10 bg-secondary border-border"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
@@ -113,6 +153,8 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     className="pl-10 pr-10 bg-secondary border-border"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                   />
                   <button

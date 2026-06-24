@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { sampleArchives } from "@/lib/data";
+import { getArchiveById, type Archive } from "@/lib/data";
 import {
   ArrowLeft,
   Download,
@@ -44,15 +44,48 @@ export default function ArchiveDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const [archive, setArchive] = useState<Archive | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Find archive by ID or use first one as fallback
-  const archive =
-    sampleArchives.find((a) => a.id === id) || sampleArchives[0];
-  const FileIcon = fileTypeIcons[archive.fileType];
+  useEffect(() => {
+    getArchiveById(id)
+      .then(setArchive)
+      .finally(() => setIsLoading(false));
+  }, [id]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <DashboardNavbar userRole="viewer" />
+        <div className="flex justify-center py-32">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!archive) {
+    return (
+      <div className="min-h-screen bg-background">
+        <DashboardNavbar userRole="viewer" />
+        <main className="container mx-auto px-4 py-24 text-center">
+          <h1 className="text-2xl font-bold mb-2">Archive not found</h1>
+          <p className="text-muted-foreground mb-6">
+            The archive you&apos;re looking for doesn&apos;t exist or has been removed.
+          </p>
+          <Button asChild>
+            <Link href="/viewer">Back to Archive</Link>
+          </Button>
+        </main>
+      </div>
+    );
+  }
+
+  const FileIcon = fileTypeIcons[archive.fileType];
 
   return (
     <div className="min-h-screen bg-background">

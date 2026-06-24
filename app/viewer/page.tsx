@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { CategoryGrid } from "@/components/dashboard/category-grid";
@@ -8,15 +8,23 @@ import { ArchiveGrid } from "@/components/dashboard/archive-card";
 import { SearchFilters } from "@/components/dashboard/search-filters";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { sampleArchives } from "@/lib/data";
+import { getArchives, type Archive } from "@/lib/data";
 import { Search, Grid3X3, List, History } from "lucide-react";
 
 export default function ViewerDashboard() {
   const [selectedCategory, setSelectedCategory] = useState<string>();
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [archives, setArchives] = useState<Archive[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredArchives = sampleArchives.filter((archive) => {
+  useEffect(() => {
+    getArchives()
+      .then(setArchives)
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  const filteredArchives = archives.filter((archive) => {
     const matchesCategory = !selectedCategory || 
       archive.category.toLowerCase().includes(selectedCategory.replace("-", " "));
     const matchesSearch = !searchQuery || 
@@ -128,7 +136,11 @@ export default function ViewerDashboard() {
             </div>
           </div>
 
-          {filteredArchives.length > 0 ? (
+          {isLoading ? (
+            <div className="flex justify-center py-16">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : filteredArchives.length > 0 ? (
             <ArchiveGrid archives={filteredArchives} />
           ) : (
             <div className="text-center py-16">
@@ -137,7 +149,9 @@ export default function ViewerDashboard() {
               </div>
               <h3 className="text-lg font-semibold mb-2">No archives found</h3>
               <p className="text-muted-foreground text-sm">
-                Try adjusting your search or filters
+                {archives.length === 0
+                  ? "No archives have been added yet. Check back soon."
+                  : "Try adjusting your search or filters"}
               </p>
             </div>
           )}

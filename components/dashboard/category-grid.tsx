@@ -1,8 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import Link from "next/link";
-import { categories } from "@/lib/data";
+import { categories, getCategoriesWithCounts, type CategoryWithCount } from "@/lib/data";
 import {
   Building2,
   Image,
@@ -28,9 +28,17 @@ interface CategoryGridProps {
 }
 
 export function CategoryGrid({ selectedCategory, onSelect }: CategoryGridProps) {
+  const [items, setItems] = useState<CategoryWithCount[]>(
+    categories.map((c) => ({ ...c, count: 0 }))
+  );
+
+  useEffect(() => {
+    getCategoriesWithCounts().then(setItems);
+  }, []);
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-      {categories.map((category, index) => {
+      {items.map((category, index) => {
         const Icon = iconMap[category.icon] || FileText;
         const isSelected = selectedCategory === category.id;
         

@@ -1,8 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { categories } from "@/lib/data";
+import { categories, getCategoriesWithCounts, type CategoryWithCount } from "@/lib/data";
 import {
   Building2,
   Image,
@@ -24,6 +25,14 @@ const iconMap: Record<string, LucideIcon> = {
 };
 
 export function CategoriesSection() {
+  const [items, setItems] = useState<CategoryWithCount[]>(
+    categories.map((c) => ({ ...c, count: 0 }))
+  );
+
+  useEffect(() => {
+    getCategoriesWithCounts().then(setItems);
+  }, []);
+
   return (
     <section className="py-24 relative">
       <div className="container mx-auto px-4">
@@ -47,7 +56,7 @@ export function CategoriesSection() {
         </motion.div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category, index) => {
+          {items.map((category, index) => {
             const Icon = iconMap[category.icon] || FileText;
             return (
               <motion.div

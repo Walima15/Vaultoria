@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { sampleUsers, sampleArchives } from "@/lib/data";
+import {
+  getProfiles,
+  getArchives,
+  type Archive as ArchiveType,
+  type User,
+} from "@/lib/data";
 import {
   Users,
   Archive,
@@ -41,69 +47,103 @@ import {
   Download,
 } from "lucide-react";
 
-const adminStats = [
-  {
-    title: "Total Users",
-    value: "2,156",
-    change: "+124 this week",
-    icon: Users,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  {
-    title: "Total Archives",
-    value: "12,458",
-    change: "+342 this week",
-    icon: Archive,
-    color: "text-accent",
-    bgColor: "bg-accent/10",
-  },
-  {
-    title: "Pending Reviews",
-    value: "47",
-    change: "12 urgent",
-    icon: Clock,
-    color: "text-yellow-500",
-    bgColor: "bg-yellow-500/10",
-  },
-  {
-    title: "Verified Today",
-    value: "89",
-    change: "+23% vs yesterday",
-    icon: FileCheck,
-    color: "text-green-500",
-    bgColor: "bg-green-500/10",
-  },
-];
+const VALID_TABS = ["users", "moderation", "analytics"];
 
-const pendingArchives = [
-  {
-    id: "pending-001",
-    title: "Ancient Mesopotamian Tablets",
-    contributor: "Dr. James Wilson",
-    submittedAt: "2 hours ago",
-    category: "Cultural Heritage",
-  },
-  {
-    id: "pending-002",
-    title: "World War II Letters Collection",
-    contributor: "Historical Society",
-    submittedAt: "5 hours ago",
-    category: "Historical Photos",
-  },
-  {
-    id: "pending-003",
-    title: "Indigenous Language Recordings",
-    contributor: "Linguistics Dept.",
-    submittedAt: "1 day ago",
-    category: "Audio Archives",
-  },
-];
+function AdminDashboardInner() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const initialTab =
+    tabParam && VALID_TABS.includes(tabParam) ? tabParam : "users";
 
-export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [users, setUsers] = useState<User[]>([]);
+  const [archives, setArchives] = useState<ArchiveType[]>([]);
 
-  const filteredUsers = sampleUsers.filter(
+  useEffect(() => {
+    getProfiles().then(setUsers);
+    getArchives().then(setArchives);
+  }, []);
+
+  const pendingArchives = useMemo(
+    () =>
+      archives
+        .filter((a) => !a.verified)
+        .map((a) => ({
+          id: a.id,
+          title: a.title,
+          contributor: a.contributor || "Unknown",
+          submittedAt: a.uploadDate,
+          category: a.category || "Uncategorized",
+        })),
+    [archives]
+  );
+
+  const verifiedCount = archives.filter((a) => a.verified).length;
+  const contributorCount = users.filter(
+    (u) => u.role === "contributor" || u.role === "admin"
+  ).length;
+  const totalDownloads = archives.reduce((sum, a) => sum + a.downloads, 0);
+  const totalViews = archives.reduce((sum, a) => sum + a.views, 0);
+  const verificationRate =
+    archives.length > 0
+      ? Math.round((verifiedCount / archives.length) * 100)
+      : 0;
+  const avgDownloads =
+    archives.length > 0 ? Math.round(totalDownloads / archives.length) : 0;
+  const popularCategory = useMemo(() => {
+    if (archives.length === 0) return "—";
+    const counts = new Map<string, number>();
+    for (const a of archives) {
+      if (!a.category) continue;
+      counts.set(a.category, (counts.get(a.category) || 0) + 1);
+    }
+    let best = "—";
+    let bestCount = 0;
+    for (const [cat, count] of counts) {
+      if (count > bestCount) {
+        best = cat;
+        bestCount = count;
+      }
+    }
+    return best;
+  }, [archives]);
+
+  const adminStats = [
+    {
+      title: "Total Users",
+      value: users.length.toLocaleString(),
+      change: `${contributorCount} contributors`,
+      icon: Users,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      title: "Total Archives",
+      value: archives.length.toLocaleString(),
+      change: `${verifiedCount} verified`,
+      icon: Archive,
+      color: "text-accent",
+      bgColor: "bg-accent/10",
+    },
+    {
+      title: "Pending Reviews",
+      value: pendingArchives.length.toLocaleString(),
+      change: "awaiting verification",
+      icon: Clock,
+      color: "text-yellow-500",
+      bgColor: "bg-yellow-500/10",
+    },
+    {
+      title: "Verified",
+      value: verifiedCount.toLocaleString(),
+      change: `${verificationRate}% verification rate`,
+      icon: FileCheck,
+      color: "text-green-500",
+      bgColor: "bg-green-500/10",
+    },
+  ];
+
+  const filteredUsers = users.filter(
     (user) =>
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase())
@@ -159,7 +199,7 @@ export default function AdminDashboard() {
         </motion.div>
 
         {/* Tabs */}
-        <Tabs defaultValue="users" className="space-y-6">
+        <Tabs defaultValue={initialTab} className="space-y-6">
           <TabsList className="bg-secondary">
             <TabsTrigger value="users" className="gap-2">
               <Users className="w-4 h-4" />
@@ -236,7 +276,7 @@ export default function AdminDashboard() {
                           </TableCell>
                           <TableCell>
                             <code className="text-xs font-mono">
-                              {user.walletAddress}
+                              {user.walletAddress || "—"}
                             </code>
                           </TableCell>
                           <TableCell>
@@ -300,6 +340,11 @@ export default function AdminDashboard() {
                   <CardTitle>Pending Archive Reviews</CardTitle>
                 </CardHeader>
                 <CardContent>
+                  {pendingArchives.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4">
+                      No archives awaiting review.
+                    </p>
+                  ) : (
                   <div className="space-y-4">
                     {pendingArchives.map((archive) => (
                       <div
@@ -337,6 +382,7 @@ export default function AdminDashboard() {
                       </div>
                     ))}
                   </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -360,28 +406,34 @@ export default function AdminDashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">
-                        New Users (This Month)
+                      <span className="text-muted-foreground">Total Users</span>
+                      <span className="font-bold text-primary">
+                        {users.length.toLocaleString()}
                       </span>
-                      <span className="font-bold text-primary">+456</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">
-                        New Archives (This Month)
+                        Total Archives
                       </span>
-                      <span className="font-bold text-primary">+1,234</span>
+                      <span className="font-bold text-primary">
+                        {archives.length.toLocaleString()}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">
                         Verification Rate
                       </span>
-                      <span className="font-bold text-green-500">94%</span>
+                      <span className="font-bold text-green-500">
+                        {verificationRate}%
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">
                         Active Contributors
                       </span>
-                      <span className="font-bold text-accent">789</span>
+                      <span className="font-bold text-accent">
+                        {contributorCount.toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -400,25 +452,29 @@ export default function AdminDashboard() {
                       <span className="text-muted-foreground">
                         Total Downloads
                       </span>
-                      <span className="font-bold">2.4M</span>
+                      <span className="font-bold">
+                        {totalDownloads.toLocaleString()}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">
-                        Downloads (This Week)
+                      <span className="text-muted-foreground">Total Views</span>
+                      <span className="font-bold text-primary">
+                        {totalViews.toLocaleString()}
                       </span>
-                      <span className="font-bold text-primary">45.2K</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">
                         Most Popular Category
                       </span>
-                      <span className="font-bold">Historical Photos</span>
+                      <span className="font-bold">{popularCategory}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">
                         Avg. Downloads per Archive
                       </span>
-                      <span className="font-bold text-accent">193</span>
+                      <span className="font-bold text-accent">
+                        {avgDownloads.toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -428,5 +484,19 @@ export default function AdminDashboard() {
         </Tabs>
       </main>
     </div>
+  );
+}
+
+export default function AdminDashboard() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <AdminDashboardInner />
+    </Suspense>
   );
 }

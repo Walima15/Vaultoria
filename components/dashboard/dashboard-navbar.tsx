@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { VaultoriaLogo } from "@/components/vaultoria-logo";
@@ -31,26 +33,58 @@ interface DashboardNavbarProps {
 const navLinks = {
   viewer: [
     { href: "/viewer", label: "Browse" },
-    { href: "/viewer/collections", label: "Collections" },
-    { href: "/viewer/saved", label: "Saved" },
+    { href: "/profile", label: "Profile" },
   ],
   contributor: [
     { href: "/contributor", label: "Dashboard" },
-    { href: "/contributor/upload", label: "Upload" },
-    { href: "/contributor/archives", label: "My Archives" },
-    { href: "/contributor/analytics", label: "Analytics" },
+    { href: "/contributor?tab=upload", label: "Upload" },
+    { href: "/contributor?tab=archives", label: "My Archives" },
   ],
   admin: [
     { href: "/admin", label: "Overview" },
-    { href: "/admin/users", label: "Users" },
-    { href: "/admin/archives", label: "Archives" },
-    { href: "/admin/moderation", label: "Moderation" },
+    { href: "/admin?tab=users", label: "Users" },
+    { href: "/admin?tab=moderation", label: "Moderation" },
+    { href: "/admin?tab=analytics", label: "Analytics" },
   ],
 };
 
 export function DashboardNavbar({ userRole }: DashboardNavbarProps) {
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [displayName, setDisplayName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [walletAddress, setWalletAddress] = useState<string>("");
   const links = navLinks[userRole];
+
+  useEffect(() => {
+    const load = async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      setEmail(user.email || "");
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, wallet_address")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (data?.full_name) setDisplayName(data.full_name);
+      if (data?.wallet_address) setWalletAddress(data.wallet_address);
+    };
+    load();
+  }, []);
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
+  const shortWallet =
+    walletAddress.length > 10
+      ? `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`
+      : walletAddress;
 
   return (
     <header className="sticky top-0 z-50 glass border-b border-border">
@@ -89,10 +123,14 @@ export function DashboardNavbar({ userRole }: DashboardNavbarProps) {
         {/* Right Side */}
         <div className="flex items-center gap-2">
           {/* Wallet Display */}
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary text-sm">
-            <Wallet className="w-4 h-4 text-primary" />
-            <span className="font-mono text-muted-foreground">7xKX...4mNp</span>
-          </div>
+          {shortWallet && (
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary text-sm">
+              <Wallet className="w-4 h-4 text-primary" />
+              <span className="font-mono text-muted-foreground">
+                {shortWallet}
+              </span>
+            </div>
+          )}
 
           {/* Notifications */}
           <Button variant="ghost" size="icon" className="relative">
@@ -111,9 +149,11 @@ export function DashboardNavbar({ userRole }: DashboardNavbarProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-2 py-1.5">
-                <p className="text-sm font-medium">Dr. Sarah Mitchell</p>
+                <p className="text-sm font-medium">
+                  {displayName || "Account"}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  s.mitchell@archives.org
+                  {email || "Not signed in"}
                 </p>
               </div>
               <DropdownMenuSeparator />
@@ -130,11 +170,12 @@ export function DashboardNavbar({ userRole }: DashboardNavbarProps) {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/login" className="text-destructive">
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out
-                </Link>
+              <DropdownMenuItem
+                onClick={handleSignOut}
+                className="text-destructive"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

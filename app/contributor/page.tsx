@@ -1,5 +1,7 @@
 "use client";
 
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { ContributorStats } from "@/components/dashboard/contributor-stats";
@@ -7,10 +9,26 @@ import { FileUploader } from "@/components/dashboard/file-uploader";
 import { ArchiveGrid } from "@/components/dashboard/archive-card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { sampleArchives } from "@/lib/data";
+import { getMyArchives, type Archive as ArchiveType } from "@/lib/data";
 import { Plus, Archive, BarChart3, Upload } from "lucide-react";
 
-export default function ContributorDashboard() {
+const VALID_TABS = ["overview", "upload", "archives"];
+
+function ContributorDashboardInner() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const initialTab =
+    tabParam && VALID_TABS.includes(tabParam) ? tabParam : "overview";
+
+  const [archives, setArchives] = useState<ArchiveType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    getMyArchives()
+      .then(setArchives)
+      .finally(() => setIsLoading(false));
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <DashboardNavbar userRole="contributor" />
@@ -38,7 +56,7 @@ export default function ContributorDashboard() {
         </motion.div>
 
         {/* Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs defaultValue={initialTab} className="space-y-6">
           <TabsList className="bg-secondary">
             <TabsTrigger value="overview" className="gap-2">
               <BarChart3 className="w-4 h-4" />
@@ -55,7 +73,7 @@ export default function ContributorDashboard() {
           </TabsList>
 
           <TabsContent value="overview">
-            <ContributorStats />
+            <ContributorStats archives={archives} />
           </TabsContent>
 
           <TabsContent value="upload">
@@ -86,14 +104,41 @@ export default function ContributorDashboard() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold">My Archives</h2>
                 <span className="text-sm text-muted-foreground">
-                  {sampleArchives.length} total archives
+                  {archives.length} total archives
                 </span>
               </div>
-              <ArchiveGrid archives={sampleArchives} />
+              {isLoading ? (
+                <div className="flex justify-center py-16">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : archives.length > 0 ? (
+                <ArchiveGrid archives={archives} />
+              ) : (
+                <div className="text-center py-16">
+                  <h3 className="text-lg font-semibold mb-2">No archives yet</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Upload your first document to see it here.
+                  </p>
+                </div>
+              )}
             </motion.div>
           </TabsContent>
         </Tabs>
       </main>
     </div>
+  );
+}
+
+export default function ContributorDashboard() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <ContributorDashboardInner />
+    </Suspense>
   );
 }

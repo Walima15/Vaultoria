@@ -1,4 +1,5 @@
-// Sample archive data for Vaultoria
+// Data layer for Vaultoria — all live data comes from Supabase.
+import { createClient } from "@/lib/supabase/client";
 
 export interface Archive {
   id: string;
@@ -30,58 +31,31 @@ export interface User {
   verified: boolean;
 }
 
-export const categories = [
-  {
-    id: "government",
-    name: "Government Records",
-    icon: "building-2",
-    count: 1245,
-    color: "gold",
-  },
-  {
-    id: "historical-photos",
-    name: "Historical Photos",
-    icon: "image",
-    count: 3892,
-    color: "blue",
-  },
-  {
-    id: "research",
-    name: "Research Papers",
-    icon: "file-text",
-    count: 2156,
-    color: "gold",
-  },
-  {
-    id: "cultural",
-    name: "Cultural Heritage",
-    icon: "landmark",
-    count: 1567,
-    color: "blue",
-  },
-  {
-    id: "audio",
-    name: "Audio Archives",
-    icon: "music",
-    count: 892,
-    color: "gold",
-  },
-  {
-    id: "video",
-    name: "Videos",
-    icon: "video",
-    count: 456,
-    color: "blue",
-  },
+export interface PlatformStat {
+  label: string;
+  value: string;
+  suffix: string;
+}
+
+export interface CategoryWithCount {
+  id: string;
+  name: string;
+  icon: string;
+  count: number;
+  color: string;
+}
+
+// Static category metadata (display only). Counts are loaded from the database.
+export const categories: Omit<CategoryWithCount, "count">[] = [
+  { id: "government", name: "Government Records", icon: "building-2", color: "gold" },
+  { id: "historical-photos", name: "Historical Photos", icon: "image", color: "blue" },
+  { id: "research", name: "Research Papers", icon: "file-text", color: "gold" },
+  { id: "cultural", name: "Cultural Heritage", icon: "landmark", color: "blue" },
+  { id: "audio", name: "Audio Archives", icon: "music", color: "gold" },
+  { id: "video", name: "Videos", icon: "video", color: "blue" },
 ];
 
-export const stats = [
-  { label: "Archives Preserved", value: "12,458", suffix: "+" },
-  { label: "Verified Documents", value: "9,823", suffix: "" },
-  { label: "Active Contributors", value: "2,156", suffix: "" },
-  { label: "Countries Covered", value: "89", suffix: "" },
-];
-
+// Static marketing copy for the landing page.
 export const features = [
   {
     title: "Tamper-Proof Storage",
@@ -121,150 +95,139 @@ export const features = [
   },
 ];
 
-export const sampleArchives: Archive[] = [
-  {
-    id: "arch-001",
-    title: "Declaration of Independence - Original Transcript",
-    description:
-      "A verified digital copy of the original Declaration of Independence with full provenance documentation.",
-    category: "Government Records",
-    year: 1776,
-    region: "United States",
-    contributor: "National Archives Foundation",
-    contributorAddress: "7xKXt...4mNp",
-    uploadDate: "2024-01-15",
-    ipfsHash: "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco",
-    blockchainHash: "0x8f3a2b...c4d5e6",
-    verified: true,
-    thumbnail: "/api/placeholder/400/300",
-    fileType: "document",
-    downloads: 15234,
-    views: 89456,
-  },
-  {
-    id: "arch-002",
-    title: "Berlin Wall Fall - Press Photography Collection",
-    description:
-      "A curated collection of 47 authenticated photographs documenting the fall of the Berlin Wall in 1989.",
-    category: "Historical Photos",
-    year: 1989,
-    region: "Germany",
-    contributor: "European History Archive",
-    contributorAddress: "3vMnQ...8kLz",
-    uploadDate: "2024-02-20",
-    ipfsHash: "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG",
-    blockchainHash: "0x2a7b8c...9f0e1d",
-    verified: true,
-    thumbnail: "/api/placeholder/400/300",
-    fileType: "image",
-    downloads: 8921,
-    views: 45672,
-  },
-  {
-    id: "arch-003",
-    title: "Martin Luther King Jr. - I Have a Dream Speech Recording",
-    description:
-      "The complete audio recording of Dr. King's historic speech at the March on Washington, 1963.",
-    category: "Audio Archives",
-    year: 1963,
-    region: "United States",
-    contributor: "Civil Rights Digital Library",
-    contributorAddress: "9pRsT...2wXy",
-    uploadDate: "2024-03-05",
-    ipfsHash: "QmRf22bZar3WKmojipms22PkXH1MZGmvsqzQtuSvQE3uhm",
-    blockchainHash: "0x5c6d7e...8f9g0h",
-    verified: true,
-    thumbnail: "/api/placeholder/400/300",
-    fileType: "audio",
-    downloads: 12456,
-    views: 67890,
-  },
-  {
-    id: "arch-004",
-    title: "Ancient Egyptian Papyrus - Book of the Dead",
-    description:
-      "High-resolution scans of authenticated papyrus scrolls from the collection of ancient Egyptian funerary texts.",
-    category: "Cultural Heritage",
-    year: -1550,
-    region: "Egypt",
-    contributor: "Cairo Museum Digital",
-    contributorAddress: "4uVwX...6yZa",
-    uploadDate: "2024-01-28",
-    ipfsHash: "QmT5NvUtoM5nWFfrQdVrFtvGfKFmG7AHE8P34isapyhCxX",
-    blockchainHash: "0x1i2j3k...4l5m6n",
-    verified: true,
-    thumbnail: "/api/placeholder/400/300",
-    fileType: "image",
-    downloads: 6789,
-    views: 34521,
-  },
-  {
-    id: "arch-005",
-    title: "Apollo 11 Mission - Original NASA Footage",
-    description:
-      "Restored 4K footage of the Apollo 11 moon landing mission, including previously unreleased cockpit audio.",
-    category: "Videos",
-    year: 1969,
-    region: "United States",
-    contributor: "NASA Historical Archive",
-    contributorAddress: "8bCdE...1fGh",
-    uploadDate: "2024-02-14",
-    ipfsHash: "QmPZ9gcCEpqKTo6aq61g2nXGUhM4iCL3ewB6LDXZCtioEB",
-    blockchainHash: "0x7o8p9q...0r1s2t",
-    verified: true,
-    thumbnail: "/api/placeholder/400/300",
-    fileType: "video",
-    downloads: 23456,
-    views: 156789,
-  },
-  {
-    id: "arch-006",
-    title: "Quantum Computing Breakthrough - Research Paper",
-    description:
-      "Peer-reviewed research paper documenting the first successful quantum supremacy experiment.",
-    category: "Research Papers",
-    year: 2019,
-    region: "United States",
-    contributor: "Scientific Archives Institute",
-    contributorAddress: "5iJkL...3mNo",
-    uploadDate: "2024-03-10",
-    ipfsHash: "QmNvTjU8FJh5o8A36RKMGvYJvHQSm8Pnbq2VJwzKhL7mXZ",
-    blockchainHash: "0x3u4v5w...6x7y8z",
-    verified: true,
-    thumbnail: "/api/placeholder/400/300",
-    fileType: "document",
-    downloads: 4567,
-    views: 23456,
-  },
-];
+interface ArchiveRow {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  year: number;
+  region: string;
+  contributor_name: string;
+  contributor_address: string;
+  ipfs_hash: string;
+  blockchain_hash: string;
+  verified: boolean;
+  file_type: Archive["fileType"];
+  downloads: number;
+  views: number;
+  created_at: string;
+}
 
-export const sampleUsers: User[] = [
-  {
-    id: "user-001",
-    name: "Dr. Sarah Mitchell",
-    email: "s.mitchell@archives.org",
-    role: "contributor",
-    walletAddress: "7xKXtR9...4mNpQw",
-    joinDate: "2023-06-15",
-    uploads: 156,
-    verified: true,
-  },
-  {
-    id: "user-002",
-    name: "James Chen",
-    email: "j.chen@history.edu",
-    role: "viewer",
-    walletAddress: "3vMnQp8...kLzYx",
-    joinDate: "2024-01-20",
-    verified: true,
-  },
-  {
-    id: "user-003",
-    name: "Admin System",
-    email: "admin@vaultoria.io",
-    role: "admin",
-    walletAddress: "9pRsTuV...wXyZa",
-    joinDate: "2023-01-01",
-    verified: true,
-  },
-];
+interface ProfileRow {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  role: User["role"];
+  wallet_address: string | null;
+  verified: boolean;
+  created_at: string;
+}
+
+function mapArchive(row: ArchiveRow): Archive {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    category: row.category,
+    year: row.year,
+    region: row.region,
+    contributor: row.contributor_name,
+    contributorAddress: row.contributor_address,
+    uploadDate: row.created_at ? row.created_at.slice(0, 10) : "",
+    ipfsHash: row.ipfs_hash,
+    blockchainHash: row.blockchain_hash,
+    verified: row.verified,
+    thumbnail: "",
+    fileType: row.file_type,
+    downloads: row.downloads,
+    views: row.views,
+  };
+}
+
+function mapProfile(row: ProfileRow): User {
+  return {
+    id: row.id,
+    name: row.full_name || "Unnamed user",
+    email: row.email || "",
+    role: row.role,
+    walletAddress: row.wallet_address || "",
+    joinDate: row.created_at ? row.created_at.slice(0, 10) : "",
+    verified: row.verified,
+  };
+}
+
+export async function getArchives(): Promise<Archive[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("archives")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return (data as ArchiveRow[]).map(mapArchive);
+}
+
+export async function getArchiveById(id: string): Promise<Archive | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("archives")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapArchive(data as ArchiveRow);
+}
+
+export async function getMyArchives(): Promise<Archive[]> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from("archives")
+    .select("*")
+    .eq("contributor_id", user.id)
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return (data as ArchiveRow[]).map(mapArchive);
+}
+
+export async function getProfiles(): Promise<User[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error || !data) return [];
+  return (data as ProfileRow[]).map(mapProfile);
+}
+
+export async function getCategoriesWithCounts(): Promise<CategoryWithCount[]> {
+  const archives = await getArchives();
+  return categories.map((category) => ({
+    ...category,
+    count: archives.filter(
+      (a) =>
+        a.category.toLowerCase() === category.name.toLowerCase() ||
+        a.category.toLowerCase().includes(category.id.replace("-", " "))
+    ).length,
+  }));
+}
+
+export async function getPlatformStats(): Promise<PlatformStat[]> {
+  const [archives, profiles] = await Promise.all([getArchives(), getProfiles()]);
+  const verified = archives.filter((a) => a.verified).length;
+  const contributors = profiles.filter(
+    (p) => p.role === "contributor" || p.role === "admin"
+  ).length;
+  const countries = new Set(
+    archives.map((a) => a.region).filter((r) => r.length > 0)
+  ).size;
+
+  return [
+    { label: "Archives Preserved", value: archives.length.toLocaleString(), suffix: "" },
+    { label: "Verified Documents", value: verified.toLocaleString(), suffix: "" },
+    { label: "Active Contributors", value: contributors.toLocaleString(), suffix: "" },
+    { label: "Countries Covered", value: countries.toLocaleString(), suffix: "" },
+  ];
+}
